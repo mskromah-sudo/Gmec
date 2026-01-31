@@ -39,6 +39,48 @@
   </style>
 
 
+  <!-- Defensive shim: suppress TypeError from extensions trying to redefine properties like Object.defineProperty -->
+  <script>
+    (function () {
+      if (window.__suppressDefinePropertyShimApplied) return;
+      window.__suppressDefinePropertyShimApplied = true;
+      const _defineProperty = Object.defineProperty;
+      Object.defineProperty = function (obj, prop, descriptor) {
+        try {
+          return _defineProperty.call(Object, obj, prop, descriptor);
+        } catch (err) {
+          // Suppress errors from extensions attempting to redefine builtins
+          // and avoid breaking the entire page (helpful for users with buggy extensions)
+          try { console.warn('Suppressed defineProperty error on', prop, err && err.message); } catch (e) {}
+          return obj;
+        }
+      };
+    })();
+  </script>
+
+  <!-- Early global handlers to catch parse-time or loader errors before the bundle executes -->
+  <script>
+    (function () {
+      function show(msg) {
+        try {
+          document.body.innerHTML = '<div style="padding:16px;background:#fee;color:#000;font-family:system-ui,Segoe UI,Roboto,Arial"><h2>Application Error</h2><pre>' + String(msg) + '</pre></div>';
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      window.addEventListener('error', function (e) {
+        console.error('Early global error', e.error || e.message || e);
+        show((e && e.error && e.error.message) || e.message || e);
+      });
+
+      window.addEventListener('unhandledrejection', function (e) {
+        console.error('Early unhandledrejection', e.reason || e);
+        show((e && e.reason && e.reason.message) || e.reason || e);
+      });
+    })();
+  </script>
+
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -58,6 +100,30 @@
 
 <body>
   <div id="root"></div>
+
+  <!-- Early global handlers to catch parse-time or loader errors before the bundle runs -->
+  <script>
+    (function () {
+      function show(msg) {
+        try {
+          document.body.innerHTML = '<div style="padding:16px;background:#fee;color:#000;font-family:system-ui,Segoe UI,Roboto,Arial"><h2>Application Error</h2><pre>' + String(msg) + '</pre></div>';
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      window.addEventListener('error', function (e) {
+        console.error('Early global error', e.error || e.message || e);
+        show((e && e.error && e.error.message) || e.message || e);
+      });
+
+      window.addEventListener('unhandledrejection', function (e) {
+        console.error('Early unhandledrejection', e.reason || e);
+        show((e && e.reason && e.reason.message) || e.reason || e);
+      });
+    })();
+  </script>
+
   <script type="module" src="/index.tsx"></script>
 </body>
 
